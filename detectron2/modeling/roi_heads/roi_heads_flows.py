@@ -22,8 +22,8 @@ from .fast_rcnn import FastRCNNOutputLayers
 from .keypoint_head import build_keypoint_head
 from .mask_head import build_mask_head
 
-ROI_HEADS_REGISTRY = Registry("ROI_HEADS")
-ROI_HEADS_REGISTRY.__doc__ = """
+ROI_HEADS_FLOWS_REGISTRY = Registry("ROI_HEADS_FLOWS")
+ROI_HEADS_FLOWS_REGISTRY.__doc__ = """
 Registry for ROI heads in a generalized R-CNN model.
 ROIHeads take feature maps and region proposals, and
 perform per-region computation.
@@ -35,15 +35,15 @@ The call is expected to return an :class:`ROIHeads`.
 logger = logging.getLogger(__name__)
 
 
-def build_roi_heads(cfg, input_shape):
+def build_roi_heads_flows(cfg, input_shape):
     """
-    Build ROIHeads defined by `cfg.MODEL.ROI_HEADS.NAME`.
+    Build ROIHeads defined by `cfg.MODEL.ROI_HEADS_FLOWS.NAME`.
     """
     name = cfg.MODEL.ROI_HEADS.NAME
-    return ROI_HEADS_REGISTRY.get(name)(cfg, input_shape)
+    return ROI_HEADS_FLOWS_REGISTRY.get(name)(cfg, input_shape)
 
 
-def select_foreground_proposals(
+def select_foreground_proposals_flows(
     proposals: List[Instances], bg_label: int
 ) -> Tuple[List[Instances], List[torch.Tensor]]:
     """
@@ -120,7 +120,7 @@ def select_proposals_with_visible_keypoints(proposals: List[Instances]) -> List[
     return ret
 
 
-class ROIHeads(torch.nn.Module):
+class ROIHeadsFlows(torch.nn.Module):
     """
     ROIHeads perform all per-region computation in an R-CNN.
 
@@ -338,8 +338,8 @@ class ROIHeads(torch.nn.Module):
         raise NotImplementedError()
 
 
-@ROI_HEADS_REGISTRY.register()
-class Res5ROIHeads(ROIHeads):
+@ROI_HEADS_FLOWS_REGISTRY.register()
+class Res5ROIHeadsFlows(ROIHeadsFlows):
     """
     The ROIHeads in a typical "C4" R-CNN model, where
     the box and mask head share the cropping and
@@ -483,7 +483,7 @@ class Res5ROIHeads(ROIHeads):
             del features
             losses = self.box_predictor.losses(predictions, proposals)
             if self.mask_on:
-                proposals, fg_selection_masks = select_foreground_proposals(
+                proposals, fg_selection_masks = select_foreground_proposals_flows(
                     proposals, self.num_classes
                 )
                 # Since the ROI feature transform is shared between boxes and masks,
@@ -526,8 +526,8 @@ class Res5ROIHeads(ROIHeads):
             return instances
 
 
-@ROI_HEADS_REGISTRY.register()
-class StandardROIHeads(ROIHeads):
+@ROI_HEADS_FLOWS_REGISTRY.register()
+class StandardROIHeadsFlows(ROIHeadsFlows):
     """
     It's "standard" in a sense that there is no ROI transform sharing
     or feature sharing between tasks.
@@ -631,6 +631,7 @@ class StandardROIHeads(ROIHeads):
         assert len(set(in_channels)) == 1, in_channels
         in_channels = in_channels[0]
 
+        print("pooler_scales: ",pooler_scales)
         box_pooler = ROIPooler(
             output_size=pooler_resolution,
             scales=pooler_scales,
@@ -796,9 +797,16 @@ class StandardROIHeads(ROIHeads):
             In training, a dict of losses.
             In inference, a list of `Instances`, the predicted instances.
         """
+        from einops import rearrange
         features = [features[f] for f in self.box_in_features]
-        # print("[f.shape...]: ",[f.shape for f in features])
+        # B = features[0].shape[0]
+        # shape_str = "b t c h w -> (b t) c h w"
+        # features = [rearrange(features[f],shape_str) for f in range(len(features))]
+        print(features[0].shape,len(features))
+        print(len(proposals),len(proposals[0]),type(proposals[0]))
+        print("-="*30)
         box_features = self.box_pooler(features, [x.proposal_boxes for x in proposals])
+        print("box_features.shape: ",box_features.shape)
         box_features = self.box_head(box_features)
         predictions = self.box_predictor(box_features)
         del box_features
@@ -838,11 +846,12 @@ class StandardROIHeads(ROIHeads):
 
         if self.training:
             # head is only trained on positive proposals.
-            instances, _ = select_foreground_proposals(instances, self.num_classes)
+            instances, _ = select_foreground_proposals_flows(instances, self.num_classes)
 
         if self.mask_pooler is not None:
             features = [features[f] for f in self.mask_in_features]
             boxes = [x.proposal_boxes if self.training else x.pred_boxes for x in instances]
+            print(features[0].shape,len(boxes))
             features = self.mask_pooler(features, boxes)
         else:
             features = {f: features[f] for f in self.mask_in_features}
@@ -868,7 +877,7 @@ class StandardROIHeads(ROIHeads):
 
         if self.training:
             # head is only trained on positive proposals with >=1 visible keypoints.
-            instances, _ = select_foreground_proposals(instances, self.num_classes)
+            instances, _ = select_foreground_proposals_flows(instances, self.num_classes)
             instances = select_proposals_with_visible_keypoints(instances)
 
         if self.keypoint_pooler is not None:

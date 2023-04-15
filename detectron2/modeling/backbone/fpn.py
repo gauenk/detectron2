@@ -186,6 +186,26 @@ def _assert_strides_are_log2_contiguous(strides):
         )
 
 
+
+class LastLevelMaxPoolStnls(nn.Module):
+    """
+    This module is used in the original FPN to generate a downsampled
+    P6 feature from P5.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.num_levels = 1
+        self.in_feature = "p3"
+
+    def forward(self, x):
+        # from einops import rearrange
+        # B = x.shape[0]
+        # x = rearrange(x,'b t c h w -> (b t) c h w')
+        x = F.max_pool2d(x, kernel_size=1, stride=2, padding=0)
+        # x = rearrange(x,'(b t) c h w -> b t c h w',b=B)
+        return [x]
+
 class LastLevelMaxPool(nn.Module):
     """
     This module is used in the original FPN to generate a downsampled

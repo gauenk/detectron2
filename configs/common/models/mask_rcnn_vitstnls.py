@@ -3,7 +3,7 @@ import torch.nn as nn
 from functools import partial
 from detectron2.config import LazyCall as L
 from detectron2.modeling import ViTStnls, SimpleFeaturePyramidStnls
-from detectron2.modeling.backbone.fpn import LastLevelMaxPool
+from detectron2.modeling.backbone.fpn import LastLevelMaxPool,LastLevelMaxPoolStnls
 
 from .mask_rcnn_fpn_stnls import model
 from ..data.constants import constants
@@ -18,11 +18,11 @@ model.backbone = L(SimpleFeaturePyramidStnls)(
     ),
     in_feature="${.net.out_feature}",
     out_channels=256,
-    scale_factors=(4.0, 2.0, 1.0, 0.5),
-    # scale_factors=(1., .5, .25, .125),
-    top_block=L(LastLevelMaxPool)(),
+    # scale_factors=(2.0, 2.0, 1.0, 0.5),
+    scale_factors=(4., 2., 1., 0.5),
+    top_block=L(LastLevelMaxPoolStnls)(),
     norm="LN",
-    square_pad=1024,
+    square_pad=128,
 )
 
 model.roi_heads.box_head.conv_norm = model.roi_heads.mask_head.conv_norm = "LN"

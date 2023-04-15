@@ -401,6 +401,9 @@ class SimpleFeaturePyramid(Backbone):
 
         input_shapes = net.output_shape()
         strides = [int(input_shapes[in_feature].stride / scale) for scale in scale_factors]
+        print("input_shapes: ",input_shapes)
+        print("strides: ",strides)
+
         _assert_strides_are_log2_contiguous(strides)
 
         dim = input_shapes[in_feature].channels
@@ -448,6 +451,7 @@ class SimpleFeaturePyramid(Backbone):
             layers = nn.Sequential(*layers)
 
             stage = int(math.log2(strides[idx]))
+            print("stage: ",stage)
             self.add_module(f"simfp_{stage}", layers)
             self.stages.append(layers)
 
@@ -456,15 +460,21 @@ class SimpleFeaturePyramid(Backbone):
         self.top_block = top_block
         # Return feature names are "p<stage>", like ["p2", "p3", ..., "p6"]
         self._out_feature_strides = {"p{}".format(int(math.log2(s))): s for s in strides}
+        print("_out_feature_strides: ",list(self._out_feature_strides.keys()))
+
         # top block output feature maps.
+        print("stage: ",stage)
         if self.top_block is not None:
             for s in range(stage, stage + self.top_block.num_levels):
                 self._out_feature_strides["p{}".format(s + 1)] = 2 ** (s + 1)
+        print("_out_feature_strides: ",list(self._out_feature_strides.keys()))
 
         self._out_features = list(self._out_feature_strides.keys())
         self._out_feature_channels = {k: out_channels for k in self._out_features}
         self._size_divisibility = strides[-1]
         self._square_pad = square_pad
+        print(self._size_divisibility)
+        print(self._square_pad)
 
     @property
     def padding_constraints(self):

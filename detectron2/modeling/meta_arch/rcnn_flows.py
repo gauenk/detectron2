@@ -4,6 +4,7 @@ import numpy as np
 from typing import Dict, List, Optional, Tuple
 import torch
 from torch import nn
+from einops import rearrange
 
 from detectron2.config import configurable
 from detectron2.data.detection_utils import convert_image_to_rgb
@@ -154,8 +155,13 @@ class GeneralizedRCNNFlows(nn.Module):
             video = video[None,:] # add batch dim
 
         # -- testing --
+        print("self.training: ",self.training)
         if not self.training:
             return self.inference(video,flows)
+        print("training!",gt_annos is None)
+        if not(gt_annos is None):
+            print(type(gt_annos[0]),gt_annos[0])
+            gt_annos = [x.to(video.device) for x in gt_annos]
 
         # -- forward pass --
         video = self.preprocess_image(video)
@@ -166,7 +172,7 @@ class GeneralizedRCNNFlows(nn.Module):
         # images.tensor = images.tensor[None,:]
         features = self.backbone(video,flows)
         # print(type(features))
-        # print(features.shape)
+        # print("features.shape: ",features.shape)
 
         # -- manage gt annos --
         if not(gt_annos is None):
@@ -175,11 +181,13 @@ class GeneralizedRCNNFlows(nn.Module):
             pass
 
         if self.proposal_generator is not None:
+            video = rearrange(video,'b t c h w -> (b t) c h w')
+            # features = rearrange(features,'b t c h w -> (b t) c h w')
             proposals, proposal_losses = self.proposal_generator(video, features,
                                                                  gt_annos)
 
         # -- detector --
-        _, detector_losses = self.roi_heads(video, features, proposals, gt_instances)
+        _, detector_losses = self.roi_heads(video, features, proposals, gt_annos)
         # if self.vis_period > 0:
         #     storage = get_event_storage()
         #     if storage.iter % self.vis_period == 0:
@@ -218,14 +226,16 @@ class GeneralizedRCNNFlows(nn.Module):
         assert not self.training
 
         # print("batched_inputs[0]['image'].shape: ",batched_inputs[0]['image'].shape)
+        print("[pre] video.shape: ",video.shape)
         video = self.preprocess_image(video)
+        print("[post] video.shape: ",video.shape)
         # print("images.tensor.shape: ",images.tensor.shape)
         # import dev_basics.utils.vid_io as vid_io
         # vid_io.save_video(images[0][None,:],".","tmp")
         base = "[detectron2/detectron2/modeling/meta_arch/rcnn.py|inference]: "
         print(base + "images.tensor: ",video.shape)
         features = self.backbone(video,flows)
-        print(features)
+        print("list(features.keys()): ",list(features.keys()))
 
         if detected_instances is None:
             if self.proposal_generator is not None:
@@ -233,15 +243,17 @@ class GeneralizedRCNNFlows(nn.Module):
             else:
                 assert "proposals" in batched_inputs[0]
                 proposals = [x["proposals"].to(self.device) for x in batched_inputs]
-
-            results, _ = self.roi_heads(images, features, proposals, None)
+            results, _ = self.roi_heads(video, features, proposals, None)
         else:
             detected_instances = [x.to(self.device) for x in detected_instances]
             results = self.roi_heads.forward_with_given_boxes(features, detected_instances)
 
         if do_postprocess:
             assert not torch.jit.is_scripting(), "Scripting is not supported for postprocess."
-            return GeneralizedRCNN._postprocess(results, batched_inputs, images.image_sizes)
+            # print("len(results): ",len(results))
+            isizes = [video.shape[-2:] for _ in range(len(results))]
+            return GeneralizedRCNNFlows._postprocess(results, isizes)
+            #return GeneralizedRCNNFlows._postprocess(results, batched_inputs, images.image_sizes)
         return results
 
     def preprocess_image(self, video):
@@ -249,6 +261,8 @@ class GeneralizedRCNNFlows(nn.Module):
         """
         Normalize, pad and batch the input images.
         """
+        # print(self.backbone.size_divisibility)
+        # print(self.backbone.padding_constraints)
         video = (video - self.pixel_mean) / self.pixel_std
         video = ImageList.from_tensors(
             [video[b] for b in range(len(video))],self.backbone.size_divisibility,
@@ -257,17 +271,23 @@ class GeneralizedRCNNFlows(nn.Module):
         return video
 
     @staticmethod
-    def _postprocess(instances, batched_inputs: List[Dict[str, torch.Tensor]], image_sizes):
+    def _postprocess(instances,
+                     image_sizes):
+    # def _postprocess(instances,
+    #                  batched_inputs: List[Dict[str, torch.Tensor]],
+    #                  image_sizes):
         """
         Rescale the output instances to the target size.
         """
         # note: private function; subject to changes
         processed_results = []
-        for results_per_image, input_per_image, image_size in zip(
-            instances, batched_inputs, image_sizes
-        ):
-            height = input_per_image.get("height", image_size[0])
-            width = input_per_image.get("width", image_size[1])
+        # for results_per_image, input_per_image, image_size in zip(
+        #     instances, batched_inputs, image_sizes
+        # ):
+        for results_per_image, image_size in zip(instances, image_sizes):
+            # height = input_per_image.get("height", image_size[0])
+            # width = input_per_image.get("width", image_size[1])
+            height,width = image_size[0],image_size[1]
             r = detector_postprocess(results_per_image, height, width)
             processed_results.append({"instances": r})
         return processed_results

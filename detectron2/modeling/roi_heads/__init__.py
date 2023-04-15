@@ -20,6 +20,14 @@ from .roi_heads import (
     build_roi_heads,
     select_foreground_proposals,
 )
+from .roi_heads_flows import (
+    ROI_HEADS_FLOWS_REGISTRY,
+    ROIHeadsFlows,
+    Res5ROIHeadsFlows,
+    StandardROIHeadsFlows,
+    build_roi_heads_flows,
+    select_foreground_proposals_flows,
+)
 from .cascade_rcnn import CascadeROIHeads
 from .rotated_fast_rcnn import RROIHeads
 from .fast_rcnn import FastRCNNOutputLayers

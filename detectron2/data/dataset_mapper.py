@@ -307,6 +307,7 @@ class DatasetMapperSeq:
             if self.recompute_boxes:
                 instances_t.gt_boxes = instances_t.gt_masks.get_bounding_boxes()
             instances_t = utils.filter_empty_instances(instances_t)
+            # print(type(instances_t))
             instances.append(instances_t)
         dataset_dict["instances"] = instances
 
@@ -344,7 +345,7 @@ class DatasetMapperSeq:
         # -- augment [t == 0] --
         aug_input = T.AugInput(vid[0], sem_seg=sem_seg[0])
         transforms = self.augmentations(aug_input)
-        print(transforms)
+        # print(transforms)
         vid[0], sem_seg[0] = aug_input.image, aug_input.sem_seg
 
         # -- apply same transform to video --
@@ -357,7 +358,7 @@ class DatasetMapperSeq:
         vid = np.stack(vid)
         vid = rearrange(vid,'t h w c -> t c h w')
         sem_seg = np.stack(sem_seg)
-        print(vid.shape,sem_seg.shape)
+        # print(vid.shape,sem_seg.shape)
         image_shape = vid[0].shape[-2:]  # h, w
 
         # -- to torch --
@@ -381,6 +382,7 @@ class DatasetMapperSeq:
 
         if "annotations" in dataset_dict:
             self._transform_annotations(dataset_dict, transforms, image_shape)
+        # print("dataset_dict.keys(): ",list(dataset_dict.keys()))
 
         return dataset_dict
 
