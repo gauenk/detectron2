@@ -128,11 +128,13 @@ def inference_on_dataset(
     logger.info("Start inference on {} batches".format(len(data_loader)))
 
     total = len(data_loader)  # inference data loader must have a fixed length
+    print(evaluator.dataset_name)
     if evaluator is None:
         # create a no-op evaluator
         evaluator = DatasetEvaluators([])
     if isinstance(evaluator, abc.MutableSequence):
         evaluator = DatasetEvaluators(evaluator)
+    print(evaluator)
     evaluator.reset()
 
     num_warmup = min(5, total - 1)
@@ -147,6 +149,7 @@ def inference_on_dataset(
 
         start_data_time = time.perf_counter()
         for idx, inputs in enumerate(data_loader):
+            # print("inputs.shape: ",len(inputs),inputs[0].shape)
             total_data_time += time.perf_counter() - start_data_time
             if idx == num_warmup:
                 start_time = time.perf_counter()

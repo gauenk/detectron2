@@ -13,6 +13,7 @@ from .resnet import (
     BottleneckBlock,
 )
 from .vit import ViT, SimpleFeaturePyramid, get_vit_lr_decay_rate
+from .vit_stnls import ViTStnls, SimpleFeaturePyramidStnls, get_vit_lr_decay_rate_stnls
 from .mvit import MViT
 from .swin import SwinTransformer
 

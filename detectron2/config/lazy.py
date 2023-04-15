@@ -221,6 +221,7 @@ class LazyConfig:
                 # Compile first with filename to:
                 # 1. make filename appears in stacktrace
                 # 2. make load_rel able to find its parent's (possibly remote) location
+                # print(content,filename)
                 exec(compile(content, filename, "exec"), module_namespace)
 
             ret = module_namespace
@@ -235,6 +236,8 @@ class LazyConfig:
             else:
                 return tuple(_cast_to_config(ret[a]) for a in keys)
         else:
+            # print([name for name, value in ret.items()])
+            # exit(0)
             if filename.endswith(".py"):
                 # when not specified, only load those that are config objects
                 ret = DictConfig(

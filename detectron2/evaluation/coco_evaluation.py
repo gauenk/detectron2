@@ -8,6 +8,7 @@ import logging
 import numpy as np
 import os
 import pickle
+from pathlib import Path
 from collections import OrderedDict
 import pycocotools.mask as mask_util
 import torch
@@ -94,6 +95,7 @@ class COCOEvaluator(DatasetEvaluator):
                 runs. You should set this to False if you need to use different validation data.
                 Defaults to True.
         """
+        self.dataset_name = dataset_name
         self._logger = logging.getLogger(__name__)
         self._distributed = distributed
         self._output_dir = output_dir
@@ -139,9 +141,11 @@ class COCOEvaluator(DatasetEvaluator):
 
             cache_path = os.path.join(output_dir, f"{dataset_name}_coco_format.json")
             self._metadata.json_file = cache_path
-            convert_to_coco_json(dataset_name, cache_path, allow_cached=allow_cached_coco)
+            convert_to_coco_json(dataset_name, cache_path,
+                                 allow_cached=allow_cached_coco)
 
-        json_file = PathManager.get_local_path(self._metadata.json_file)
+        base = Path(__file__).parents[2]
+        json_file = str(base / PathManager.get_local_path(self._metadata.json_file))
         with contextlib.redirect_stdout(io.StringIO()):
             self._coco_api = COCO(json_file)
 
@@ -163,6 +167,8 @@ class COCOEvaluator(DatasetEvaluator):
             outputs: the outputs of a COCO model. It is a list of dicts with key
                 "instances" that contains :class:`Instances`.
         """
+        # print(len(inputs),len(outputs))
+        # print(type(inputs[0]))
         for input, output in zip(inputs, outputs):
             prediction = {"image_id": input["image_id"]}
 
@@ -228,6 +234,7 @@ class COCOEvaluator(DatasetEvaluator):
         tasks = self._tasks or self._tasks_from_predictions(coco_results)
 
         # unmap the category ids for COCO
+        # print(self._metadata)
         if hasattr(self._metadata, "thing_dataset_id_to_contiguous_id"):
             dataset_id_to_contiguous_id = self._metadata.thing_dataset_id_to_contiguous_id
             all_contiguous_ids = list(dataset_id_to_contiguous_id.values())

@@ -729,6 +729,8 @@ class StandardROIHeads(ROIHeads):
         """
         See :class:`ROIHeads.forward`.
         """
+        print("ROI")
+        print(images[0].shape)
         del images
         if self.training:
             assert targets, "'targets' argument is required during training"

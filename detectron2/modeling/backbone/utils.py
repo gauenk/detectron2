@@ -3,6 +3,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from einops import rearrange,repeat
 
 __all__ = [
     "window_partition",
@@ -10,6 +11,8 @@ __all__ = [
     "add_decomposed_rel_pos",
     "get_abs_pos",
     "PatchEmbed",
+    "PatchEmbed4D",
+    "LayerNorm2D"
 ]
 
 
@@ -184,3 +187,48 @@ class PatchEmbed(nn.Module):
         # B C H W -> B H W C
         x = x.permute(0, 2, 3, 1)
         return x
+
+class LayerNorm2D(nn.LayerNorm):
+    """ LayerNorm for channels of '2D' spatial NCHW tensors """
+    """ copied from https://github.com/rwightman/pytorch-image-models/blob/d7b55a9429f3d56a991e604cbc2e9fdf1901612f/timm/models/layers/norm.py#L26 """
+    def __init__(self, num_channels, eps=1e-6, affine=True):
+        super().__init__(num_channels, eps=eps, elementwise_affine=affine)
+
+    def forward(self,vid: torch.Tensor) -> torch.Tensor:
+        B,T = vid.shape[:2]
+        vid = rearrange(vid,'b t c h w -> (b t) c h w ')
+        vid = F.layer_norm(vid.permute(0, 2, 3, 1), self.normalized_shape,
+                           self.weight, self.bias, self.eps).permute(0, 3, 1, 2)
+        vid = rearrange(vid,'(b t) c h w -> b t c h w ',b=B)
+        vid = vid.contiguous()
+        return vid
+
+class PatchEmbed4D(nn.Module):
+    """
+    Image to Patch Embedding.
+    """
+
+    def __init__(
+        self, kernel_size=(16, 16), stride=(16, 16), padding=(0, 0), in_chans=3, embed_dim=768
+    ):
+        """
+        Args:
+            kernel_size (Tuple): kernel size of the projection layer.
+            stride (Tuple): stride of the projection layer.
+            padding (Tuple): padding size of the projection layer.
+            in_chans (int): Number of input image channels.
+            embed_dim (int):  embed_dim (int): Patch embedding dimension.
+        """
+        super().__init__()
+
+        self.proj = nn.Conv2d(
+            in_chans, embed_dim, kernel_size=kernel_size, stride=stride, padding=padding
+        )
+
+    def forward(self, vid):
+        vid = rearrange(vid,'b t c h w -> (b t) c h w')
+        vid = self.proj(vid)
+        # B C H W -> B H W C
+        vid = rearrange(vid,'b t c h w -> (b t) c h w')
+        return x
+

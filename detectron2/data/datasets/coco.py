@@ -11,6 +11,7 @@ import pycocotools.mask as mask_util
 from fvcore.common.timer import Timer
 from iopath.common.file_io import file_lock
 from PIL import Image
+from pathlib import Path
 
 from detectron2.structures import Boxes, BoxMode, PolygonMasks, RotatedBoxes
 from detectron2.utils.file_io import PathManager
@@ -497,6 +498,10 @@ def register_coco_instances(name, metadata, json_file, image_root):
     assert isinstance(json_file, (str, os.PathLike)), json_file
     assert isinstance(image_root, (str, os.PathLike)), image_root
     # 1. register a function which returns dicts
+    base = Path(__file__).parents[3].resolve()
+    image_root = str(base / image_root)
+    json_file = str(base / json_file)
+    # print(json_file, image_root, name)
     DatasetCatalog.register(name, lambda: load_coco_json(json_file, image_root, name))
 
     # 2. Optionally, add metadata about this dataset,

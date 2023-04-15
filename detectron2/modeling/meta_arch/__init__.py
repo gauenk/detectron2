@@ -7,6 +7,7 @@ from .panoptic_fpn import PanopticFPN
 
 # import all the meta_arch, so they will be registered
 from .rcnn import GeneralizedRCNN, ProposalNetwork
+from .rcnn_flows import GeneralizedRCNNFlows, ProposalNetworkFlows
 from .dense_detector import DenseDetector
 from .retinanet import RetinaNet
 from .fcos import FCOS

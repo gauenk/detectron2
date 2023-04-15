@@ -44,6 +44,7 @@ model.backbone = L(SimpleFeaturePyramid)(
     in_feature="${.net.out_feature}",
     out_channels=256,
     scale_factors=(4.0, 2.0, 1.0, 0.5),
+    # scale_factors=(2.0, 2.0, 1.0, 0.5),
     top_block=L(LastLevelMaxPool)(),
     norm="LN",
     square_pad=1024,
