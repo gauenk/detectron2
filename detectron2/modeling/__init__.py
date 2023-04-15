@@ -14,6 +14,9 @@ from .backbone import (
     ViT,
     SimpleFeaturePyramid,
     get_vit_lr_decay_rate,
+    ViTStnls,
+    SimpleFeaturePyramidStnls,
+    get_vit_lr_decay_rate_stnls,
     MViT,
     SwinTransformer,
 )

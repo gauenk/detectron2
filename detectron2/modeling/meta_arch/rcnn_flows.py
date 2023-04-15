@@ -18,11 +18,11 @@ from ..proposal_generator import build_proposal_generator
 from ..roi_heads import build_roi_heads
 from .build import META_ARCH_REGISTRY
 
-__all__ = ["GeneralizedRCNN", "ProposalNetwork"]
+__all__ = ["GeneralizedRCNNFlows", "ProposalNetworkFlows"]
 
 
 @META_ARCH_REGISTRY.register()
-class GeneralizedRCNN(nn.Module):
+class GeneralizedRCNNFlows(nn.Module):
     """
     Generalized R-CNN. Any models that contains the following three components:
     1. Per-image feature extraction (aka backbone)
@@ -123,7 +123,7 @@ class GeneralizedRCNN(nn.Module):
             storage.put_image(vis_name, vis_img)
             break  # only visualize one image in a batch
 
-    def forward(self, batched_inputs: List[Dict[str, torch.Tensor]]):
+    def forward(self, video, flows, gt_annos=None):
         """
         Args:
             batched_inputs: a list, batched outputs of :class:`DatasetMapper` .
@@ -146,39 +146,44 @@ class GeneralizedRCNN(nn.Module):
                 The :class:`Instances` object has the following keys:
                 "pred_boxes", "pred_classes", "scores", "pred_masks", "pred_keypoints"
         """
-        # print("batched_inputs: ",batched_inputs)
-        # print("list(batched_inputs.keys()): ",list(batched_inputs.keys()))
-        # print("batch_inputs: ",len(batched_inputs))
-        # print("self.training: ",self.training)
+
+        # -- view --
+        # print("video.shape: ",video.shape)
+        # exit(0)
+        if video.ndim == 4:
+            video = video[None,:] # add batch dim
+
+        # -- testing --
         if not self.training:
-            return self.inference(batched_inputs)
+            return self.inference(video,flows)
 
-        # print(batched_inputs)
-        images = self.preprocess_image(batched_inputs)
-        if "instances" in batched_inputs[0]:
-            gt_instances = [x["instances"].to(self.device) for x in batched_inputs]
-        else:
-            gt_instances = None
+        # -- forward pass --
+        video = self.preprocess_image(video)
+        print(video.shape)
 
-        base = "[detectron2/detectron2/modeling/meta_arch/rcnn.py|forward]: "
-        print(base + "images.tensor: ",images.tensor.shape)
-        images.tensor = images.tensor[None,:]
-        features = self.backbone(images.tensor)
-        print(type(features))
-        print(features.shape)
+        # base = "[detectron2/detectron2/modeling/meta_arch/rcnn.py|forward]: "
+        # print(base + "images.tensor: ",video.shape)
+        # images.tensor = images.tensor[None,:]
+        features = self.backbone(video,flows)
+        # print(type(features))
+        # print(features.shape)
+
+        # -- manage gt annos --
+        if not(gt_annos is None):
+            # gt_boxes = [x.gt_boxes for x in gt_instances]
+            # image_sizes = [x.image_size for x in gt_instances]
+            pass
 
         if self.proposal_generator is not None:
-            proposals, proposal_losses = self.proposal_generator(images, features, gt_instances)
-        else:
-            assert "proposals" in batched_inputs[0]
-            proposals = [x["proposals"].to(self.device) for x in batched_inputs]
-            proposal_losses = {}
+            proposals, proposal_losses = self.proposal_generator(video, features,
+                                                                 gt_annos)
 
-        _, detector_losses = self.roi_heads(images, features, proposals, gt_instances)
-        if self.vis_period > 0:
-            storage = get_event_storage()
-            if storage.iter % self.vis_period == 0:
-                self.visualize_training(batched_inputs, proposals)
+        # -- detector --
+        _, detector_losses = self.roi_heads(video, features, proposals, gt_instances)
+        # if self.vis_period > 0:
+        #     storage = get_event_storage()
+        #     if storage.iter % self.vis_period == 0:
+        #         self.visualize_training(batched_inputs, proposals)
 
         losses = {}
         losses.update(detector_losses)
@@ -187,7 +192,9 @@ class GeneralizedRCNN(nn.Module):
 
     def inference(
         self,
-        batched_inputs: List[Dict[str, torch.Tensor]],
+        video,
+        flows,
+        # batched_inputs: List[Dict[str, torch.Tensor]],
         detected_instances: Optional[List[Instances]] = None,
         do_postprocess: bool = True,
     ):
@@ -211,19 +218,18 @@ class GeneralizedRCNN(nn.Module):
         assert not self.training
 
         # print("batched_inputs[0]['image'].shape: ",batched_inputs[0]['image'].shape)
-        images = self.preprocess_image(batched_inputs)
+        video = self.preprocess_image(video)
         # print("images.tensor.shape: ",images.tensor.shape)
         # import dev_basics.utils.vid_io as vid_io
         # vid_io.save_video(images[0][None,:],".","tmp")
         base = "[detectron2/detectron2/modeling/meta_arch/rcnn.py|inference]: "
-        print(base + "images.tensor: ",images.tensor.shape)
-        images.tensor = images.tensor[None,:]
-        features = self.backbone(images.tensor)
+        print(base + "images.tensor: ",video.shape)
+        features = self.backbone(video,flows)
         print(features)
 
         if detected_instances is None:
             if self.proposal_generator is not None:
-                proposals, _ = self.proposal_generator(images, features, None)
+                proposals, _ = self.proposal_generator(video, features, None)
             else:
                 assert "proposals" in batched_inputs[0]
                 proposals = [x["proposals"].to(self.device) for x in batched_inputs]
@@ -238,18 +244,17 @@ class GeneralizedRCNN(nn.Module):
             return GeneralizedRCNN._postprocess(results, batched_inputs, images.image_sizes)
         return results
 
-    def preprocess_image(self, batched_inputs: List[Dict[str, torch.Tensor]]):
+    def preprocess_image(self, video):
+    # def preprocess_image(self, batched_inputs: List[Dict[str, torch.Tensor]]):
         """
         Normalize, pad and batch the input images.
         """
-        images = [self._move_to_current_device(x["image"]) for x in batched_inputs]
-        images = [(x - self.pixel_mean) / self.pixel_std for x in images]
-        images = ImageList.from_tensors(
-            images,
-            self.backbone.size_divisibility,
+        video = (video - self.pixel_mean) / self.pixel_std
+        video = ImageList.from_tensors(
+            [video[b] for b in range(len(video))],self.backbone.size_divisibility,
             padding_constraints=self.backbone.padding_constraints,
-        )
-        return images
+        ).tensor
+        return video
 
     @staticmethod
     def _postprocess(instances, batched_inputs: List[Dict[str, torch.Tensor]], image_sizes):
@@ -269,7 +274,7 @@ class GeneralizedRCNN(nn.Module):
 
 
 @META_ARCH_REGISTRY.register()
-class ProposalNetwork(nn.Module):
+class ProposalNetworkFlows(nn.Module):
     """
     A meta architecture that only predicts object proposals.
     """

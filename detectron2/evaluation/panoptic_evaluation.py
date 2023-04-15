@@ -35,6 +35,7 @@ class COCOPanopticEvaluator(DatasetEvaluator):
             dataset_name: name of the dataset
             output_dir: output directory to save results for evaluation.
         """
+        self.dataset_name = dataset_name
         self._metadata = MetadataCatalog.get(dataset_name)
         self._thing_contiguous_id_to_dataset_id = {
             v: k for k, v in self._metadata.thing_dataset_id_to_contiguous_id.items()
@@ -67,7 +68,8 @@ class COCOPanopticEvaluator(DatasetEvaluator):
 
     def process(self, inputs, outputs):
         from panopticapi.utils import id2rgb
-
+        print("self.dataset_name: ",self.dataset_name)
+        print("\n"*20)
         for input, output in zip(inputs, outputs):
             panoptic_img, segments_info = output["panoptic_seg"]
             panoptic_img = panoptic_img.cpu().numpy()

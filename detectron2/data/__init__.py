@@ -11,7 +11,7 @@ from .build import (
 )
 from .catalog import DatasetCatalog, MetadataCatalog, Metadata
 from .common import DatasetFromList, MapDataset, ToIterableDataset
-from .dataset_mapper import DatasetMapper
+from .dataset_mapper import DatasetMapper,DatasetMapperSeq
 
 # ensure the builtin datasets are registered
 from . import datasets, samplers  # isort:skip

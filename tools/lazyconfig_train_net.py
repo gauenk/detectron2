@@ -33,9 +33,16 @@ logger = logging.getLogger("detectron2")
 
 
 def do_test(cfg, model):
+    # print("\n"*15)
+    # print(cfg.dataloader.test)
+    # print("\n"*15)
+    # print(cfg.dataloader.evaluator)
+    # print("bye.")
+    # exit(0)
     if "evaluator" in cfg.dataloader:
         ret = inference_on_dataset(
-            model, instantiate(cfg.dataloader.test), instantiate(cfg.dataloader.evaluator)
+            model, instantiate(cfg.dataloader.test),
+            instantiate(cfg.dataloader.evaluator)
         )
         print_csv_format(ret)
         return ret
@@ -104,9 +111,18 @@ def do_train(args, cfg):
 
 
 def main(args):
+    # print("\n"*5)
+    # print(args)
+    # print("\n"*5)
     cfg = LazyConfig.load(args.config_file)
+    # print("\n"*5)
+    # print(cfg)
+    # print("\n"*5)
     cfg = LazyConfig.apply_overrides(cfg, args.opts)
     default_setup(cfg, args)
+    # print("\n"*5)
+    # print(cfg.dataloader.test)
+    # print("\n"*5)
 
     if args.eval_only:
         model = instantiate(cfg.model)

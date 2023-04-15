@@ -126,6 +126,7 @@ class MultiScaleAttention(nn.Module):
                 nn.init.trunc_normal_(self.rel_pos_w, std=0.02)
 
     def forward(self, x):
+        # print("x.shape: ",x.shape)
         B, H, W, _ = x.shape
         # qkv with shape (3, B, nHead, H, W, C)
         qkv = self.qkv(x).reshape(B, H, W, 3, self.num_heads, -1).permute(3, 0, 4, 1, 2, 5)
@@ -429,6 +430,7 @@ class MViT(Backbone):
             nn.init.constant_(m.weight, 1.0)
 
     def forward(self, x):
+        # print("x.shape: ",x.shape)
         x = self.patch_embed(x)
 
         if self.pos_embed is not None:
