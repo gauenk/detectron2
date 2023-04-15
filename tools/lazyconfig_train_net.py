@@ -40,7 +40,6 @@ def do_test(cfg, model):
         print_csv_format(ret)
         return ret
 
-
 def do_train(args, cfg):
     """
     Args:
