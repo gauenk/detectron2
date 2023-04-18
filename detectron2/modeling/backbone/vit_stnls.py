@@ -283,9 +283,9 @@ class SimpleFeaturePyramidStnls(Backbone):
         self.scale_factors = scale_factors
 
         input_shapes = net.output_shape()
-        print("input_shapes: ",input_shapes)
+        # print("input_shapes: ",input_shapes)
         strides = [int(input_shapes[in_feature].stride / scale) for scale in scale_factors]
-        print("strides: ",strides)
+        # print("strides: ",strides)
         # _assert_strides_are_log2_contiguous(strides)
 
         dim = input_shapes[in_feature].channels
@@ -308,6 +308,13 @@ class SimpleFeaturePyramidStnls(Backbone):
                 layers = []
             elif scale == 0.5:
                 layers = [nn.MaxPool2d(kernel_size=2, stride=2)]
+            elif scale == 0.25:
+                layers = [nn.MaxPool2d(kernel_size=2, stride=2),
+                          nn.MaxPool2d(kernel_size=2, stride=2)]
+            elif scale == 0.125:
+                layers = [nn.MaxPool2d(kernel_size=2, stride=2),
+                          nn.MaxPool2d(kernel_size=2, stride=2),
+                          nn.MaxPool2d(kernel_size=2, stride=2)]
             else:
                 raise NotImplementedError(f"scale_factor={scale} is not supported yet.")
 
@@ -343,7 +350,7 @@ class SimpleFeaturePyramidStnls(Backbone):
         # Return feature names are "p<stage>", like ["p2", "p3", ..., "p6"]
         # self._out_feature_strides = {"p{}".format(int(math.log2(s))): s for s in strides}
         self._out_feature_strides = {"p{}".format(s): s for s,_ in enumerate(strides)}
-        print("_out_feature_strides: ",list(self._out_feature_strides.keys()))
+        # print("_out_feature_strides: ",list(self._out_feature_strides.keys()))
         # top block output feature maps.
         if self.top_block is not None:
             for s in range(stage, stage + self.top_block.num_levels):
@@ -378,18 +385,19 @@ class SimpleFeaturePyramidStnls(Backbone):
         bottom_up_features = self.net(x,flows=flows)
         features = bottom_up_features[self.in_feature]
         results = []
-        print("features.shape: ",features.shape)
+        # print("features.shape: ",features.shape)
 
         B = features.shape[0]
         features = rearrange(features,'b t c h w -> (b t) c h w')
         for stage in self.stages:
             sfeats = stage(features)
-            print("sfeats.shape: ",sfeats.shape)
+            # print("sfeats.shape: ",sfeats.shape)
             # sfeats = rearrange(sfeats,'(b t) c h w -> b t c h w',b=B)
             results.append(sfeats)
 
-        print(self.top_block)
-        print(self._out_features)
+        # print(len(results))
+        # print(self.top_block)
+        # print(self._out_features)
         if self.top_block is not None:
             if self.top_block.in_feature in bottom_up_features:
                 top_block_in_feature = bottom_up_features[self.top_block.in_feature]

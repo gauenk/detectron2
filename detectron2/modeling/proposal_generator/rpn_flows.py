@@ -334,10 +334,10 @@ class RPNFlows(nn.Module):
                 i-th element is a Rx4 tensor. The values are the matched gt boxes for each
                 anchor. Values are undefined for those anchors not labeled as 1.
         """
-        print(len(anchors))
+        # print(len(anchors))
         anchors = Boxes.cat(anchors)
-        print(len(anchors))
-        print(len(gt_instances))
+        # print(len(anchors))
+        # print(len(gt_instances))
 
         gt_boxes = [x.gt_boxes for x in gt_instances]
         image_sizes = [x.image_size for x in gt_instances]
@@ -463,14 +463,14 @@ class RPNFlows(nn.Module):
             proposals: list[Instances]: contains fields "proposal_boxes", "objectness_logits"
             loss: dict[Tensor] or None
         """
-        print("len(images),len(gt_instances): ",len(images),len(gt_instances))
+        # print("len(images),len(gt_instances): ",len(images),len(gt_instances))
         features = [features[f] for f in self.in_features]
         anchors = self.anchor_generator(features)
 
         pred_objectness_logits, pred_anchor_deltas = self.rpn_head(features)
         # Transpose the Hi*Wi*A dimension to the middle:
-        print("len(pred_objectness_logits): ",len(pred_objectness_logits))
-        print("pred_objectness_logits[0].shape: ",pred_objectness_logits[0].shape)
+        # print("len(pred_objectness_logits): ",len(pred_objectness_logits))
+        # print("pred_objectness_logits[0].shape: ",pred_objectness_logits[0].shape)
         pred_objectness_logits = [
             # (N, A, Hi, Wi) -> (N, Hi, Wi, A) -> (N, Hi*Wi*A)
             # score.permute(0, 1, 3, 4, 2).flatten(2)
@@ -486,8 +486,8 @@ class RPNFlows(nn.Module):
             for x in pred_anchor_deltas
         ]
 
-        print("len(anchors): ",len(anchors))
-        print("len(gt_instances): ",len(gt_instances))
+        # print("len(anchors): ",len(anchors))
+        # print("len(gt_instances): ",len(gt_instances))
         if self.training:
             assert gt_instances is not None, "RPN requires gt_instances in training!"
             gt_labels, gt_boxes = self.label_and_sample_anchors(anchors, gt_instances)
@@ -497,11 +497,11 @@ class RPNFlows(nn.Module):
         else:
             losses = {}
         image_sizes = [images[0].shape[-2:] for _ in range(len(images))]
-        print(len(anchors),len(pred_objectness_logits),len(image_sizes))
+        # print(len(anchors),len(pred_objectness_logits),len(image_sizes))
         proposals = self.predict_proposals(
             anchors, pred_objectness_logits, pred_anchor_deltas, image_sizes
         )
-        print("len(proposals): ",len(proposals))
+        # print("len(proposals): ",len(proposals))
         return proposals, losses
 
     def predict_proposals(
@@ -525,7 +525,7 @@ class RPNFlows(nn.Module):
         # are also network responses.
         with torch.no_grad():
             pred_proposals = self._decode_proposals(anchors, pred_anchor_deltas)
-            print(len(pred_proposals),len(anchors),len(pred_anchor_deltas))
+            # print(len(pred_proposals),len(anchors),len(pred_anchor_deltas))
             return find_top_rpn_proposals(
                 pred_proposals,
                 pred_objectness_logits,

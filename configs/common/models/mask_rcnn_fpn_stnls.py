@@ -27,14 +27,16 @@ model = L(GeneralizedRCNNFlows)(
                 stride_in_1x1=True,
                 norm="FrozenBN",
             ),
-            out_features=["res2", "res3", "res4", "res5"],
+            # out_features=["res2", "res3", "res4", "res5"],
+            out_features=["res3", "res4", "res5"],
         ),
         in_features="${.bottom_up.out_features}",
         out_channels=256,
         top_block=L(LastLevelMaxPoolStnls)(),
     ),
     proposal_generator=L(RPNFlows)(
-        in_features=["p0", "p1", "p2", "p3", "p4"],
+        # in_features=["p0", "p1", "p2", "p3", "p4"],
+        in_features=["p0", "p1", "p2", "p3"],
         head=L(StandardRPNHeadFlows)(in_channels=256, num_anchors=3),
         anchor_generator=L(DefaultAnchorGenerator)(
             sizes=[[32], [64], [128], [256], [512]],
@@ -45,6 +47,7 @@ model = L(GeneralizedRCNNFlows)(
         anchor_matcher=L(Matcher)(
             thresholds=[0.3, 0.7], labels=[0, -1, 1], allow_low_quality_matches=True
         ),
+        # box2box_transform=L(Box2BoxTransform)(weights=[1.0, 1.0, 1.0, 1.0]),
         box2box_transform=L(Box2BoxTransform)(weights=[1.0, 1.0, 1.0, 1.0]),
         batch_size_per_image=256,
         positive_fraction=0.5,
@@ -59,10 +62,13 @@ model = L(GeneralizedRCNNFlows)(
         proposal_matcher=L(Matcher)(
             thresholds=[0.5], labels=[0, 1], allow_low_quality_matches=False
         ),
-        box_in_features=["p0", "p1", "p2", "p3"],
+        # box_in_features=["p0", "p1", "p2", "p3"],
+        box_in_features=["p0", "p1", "p2"],
         box_pooler=L(ROIPooler)(
             output_size=7,
-            scales=(1.0 / 4, 1.0 / 8, 1.0 / 16, 1.0 / 32),
+            # scales=(1.0 / 4, 1.0 / 8, 1.0 / 16, 1.0 / 32),
+            # scales=(1.0 / 4, 1.0 / 8, 1.0 / 16, 1.0 / 32),
+            scales=(1.0, 1.0 / 2, 1.0 / 4),
             # scales=(1.0, 1.0, 1.0, 1.0),
             sampling_ratio=0,
             pooler_type="ROIAlignV2",
@@ -78,10 +84,12 @@ model = L(GeneralizedRCNNFlows)(
             box2box_transform=L(Box2BoxTransform)(weights=(10, 10, 5, 5)),
             num_classes="${..num_classes}",
         ),
-        mask_in_features=["p0", "p1", "p2", "p3"],
+        # mask_in_features=["p0", "p1", "p2", "p3"],
+        mask_in_features=["p0", "p1", "p2"],
         mask_pooler=L(ROIPooler)(
             output_size=14,
-            scales=(1.0 / 4, 1.0 / 8, 1.0 / 16, 1.0 / 32),
+            # scales=(1.0 / 4, 1.0 / 8, 1.0 / 16, 1.0 / 32),
+            scales=(1.0 / 4, 1.0 / 8, 1.0 / 16),
             sampling_ratio=0,
             pooler_type="ROIAlignV2",
         ),

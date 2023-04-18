@@ -631,7 +631,7 @@ class StandardROIHeadsFlows(ROIHeadsFlows):
         assert len(set(in_channels)) == 1, in_channels
         in_channels = in_channels[0]
 
-        print("pooler_scales: ",pooler_scales)
+        # print("pooler_scales: ",pooler_scales)
         box_pooler = ROIPooler(
             output_size=pooler_resolution,
             scales=pooler_scales,
@@ -802,11 +802,11 @@ class StandardROIHeadsFlows(ROIHeadsFlows):
         # B = features[0].shape[0]
         # shape_str = "b t c h w -> (b t) c h w"
         # features = [rearrange(features[f],shape_str) for f in range(len(features))]
-        print(features[0].shape,len(features))
-        print(len(proposals),len(proposals[0]),type(proposals[0]))
-        print("-="*30)
+        # print(features[0].shape,len(features))
+        # print(len(proposals),len(proposals[0]),type(proposals[0]))
+        # print("-="*30)
         box_features = self.box_pooler(features, [x.proposal_boxes for x in proposals])
-        print("box_features.shape: ",box_features.shape)
+        # print("box_features.shape: ",box_features.shape)
         box_features = self.box_head(box_features)
         predictions = self.box_predictor(box_features)
         del box_features
@@ -851,7 +851,7 @@ class StandardROIHeadsFlows(ROIHeadsFlows):
         if self.mask_pooler is not None:
             features = [features[f] for f in self.mask_in_features]
             boxes = [x.proposal_boxes if self.training else x.pred_boxes for x in instances]
-            print(features[0].shape,len(boxes))
+            # print(features[0].shape,len(boxes))
             features = self.mask_pooler(features, boxes)
         else:
             features = {f: features[f] for f in self.mask_in_features}

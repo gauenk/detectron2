@@ -155,17 +155,17 @@ class GeneralizedRCNNFlows(nn.Module):
             video = video[None,:] # add batch dim
 
         # -- testing --
-        print("self.training: ",self.training)
+        # print("self.training: ",self.training)
         if not self.training:
             return self.inference(video,flows)
-        print("training!",gt_annos is None)
+        # print("training!",gt_annos is None)
         if not(gt_annos is None):
-            print(type(gt_annos[0]),gt_annos[0])
+            # print(type(gt_annos[0]),gt_annos[0])
             gt_annos = [x.to(video.device) for x in gt_annos]
 
         # -- forward pass --
         video = self.preprocess_image(video)
-        print(video.shape)
+        # print(video.shape)
 
         # base = "[detectron2/detectron2/modeling/meta_arch/rcnn.py|forward]: "
         # print(base + "images.tensor: ",video.shape)
@@ -226,19 +226,20 @@ class GeneralizedRCNNFlows(nn.Module):
         assert not self.training
 
         # print("batched_inputs[0]['image'].shape: ",batched_inputs[0]['image'].shape)
-        print("[pre] video.shape: ",video.shape)
+        # print("[pre] video.shape: ",video.shape)
         video = self.preprocess_image(video)
-        print("[post] video.shape: ",video.shape)
+        # print("[post] video.shape: ",video.shape)
         # print("images.tensor.shape: ",images.tensor.shape)
         # import dev_basics.utils.vid_io as vid_io
         # vid_io.save_video(images[0][None,:],".","tmp")
         base = "[detectron2/detectron2/modeling/meta_arch/rcnn.py|inference]: "
-        print(base + "images.tensor: ",video.shape)
+        # print(base + "images.tensor: ",video.shape)
         features = self.backbone(video,flows)
-        print("list(features.keys()): ",list(features.keys()))
+        # print("list(features.keys()): ",list(features.keys()))
 
         if detected_instances is None:
             if self.proposal_generator is not None:
+                video = rearrange(video,'b t c h w -> (b t) c h w')
                 proposals, _ = self.proposal_generator(video, features, None)
             else:
                 assert "proposals" in batched_inputs[0]
