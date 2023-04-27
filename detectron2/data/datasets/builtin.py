@@ -211,6 +211,31 @@ def register_all_cityscapes(root):
         )
 
 
+# ==== Predefined splits for raw youtube videos ===========
+_RAW_YOUTUBE_SPLITS = {
+    "youtube_train": ("youtube/train/JPEGImages/", "youtube/train/Annotations/"),
+    "youtube_valid": ("youtube/valid/JPEGImages/", "youtube/valid/Annotations/"),
+    "youtube_test": ("youtube/test/JPEGImages/", "youtube/test/Annotations/"),
+}
+
+
+def register_all_youtube(root):
+    for name, (image_dir, gt_dir) in _RAW_YOUTUBE_SPLITS.items():
+        meta = _get_builtin_metadata("youtube")
+        image_dir = os.path.join(root, image_dir)
+        gt_dir = os.path.join(root, gt_dir)
+        DatasetCatalog.register(
+            name, lambda x=image_dir, y=gt_dir: \
+            load_youtube_instances(y, x, gt_ext="png", image_ext="jpg"))
+        MetadataCatalog.get(name).set(
+            image_root=image_dir,
+            sem_seg_root=gt_dir,
+            evaluator_type="youtube_instances",
+            ignore_label=255,
+            **meta
+        )
+
+
 # ==== Predefined splits for PASCAL VOC ===========
 def register_all_pascal_voc(root):
     SPLITS = [
@@ -257,3 +282,4 @@ if __name__.endswith(".builtin"):
     register_all_cityscapes_panoptic(_root)
     register_all_pascal_voc(_root)
     register_all_ade20k(_root)
+    register_all_youtube(_root)

@@ -347,4 +347,11 @@ def _get_builtin_metadata(dataset_name):
             "thing_classes": CITYSCAPES_THING_CLASSES,
             "stuff_classes": CITYSCAPES_STUFF_CLASSES,
         }
+    elif dataset_name in ["youtube","youtube_voc"]:
+        # fmt: off
+        YOUTUBE_STUFF_CLASSES = ["airplane","ape","bear","bike","bird","boat","bucket","bus","camel","cat","cow","crocodile","deer","dog","dolphin","duck","eagle","earless_seal","elephant","fish","fox","frisbee","frog","giant_panda","giraffe","hand","hat","hedgehog","horse","knife","leopard","lion","lizard","monkey","motorbike","mouse","others","owl","paddle","parachute","parrot","penguin","person","plant","rabbit","raccoon","sedan","shark","sheep","sign","skateboard","snail","snake","snowboard","squirrel","surfboard","tennis_racket","tiger","toilet","train","truck","turtle","umbrella","whale","zebra"]
+        # fmt: on
+        return {
+            "thing_classes": YOUTUBE_STUFF_CLASSES,
+        }
     raise KeyError("No built-in metadata for dataset {}".format(dataset_name))

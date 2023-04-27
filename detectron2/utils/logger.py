@@ -71,6 +71,7 @@ def setup_logger(
     """
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
+    # logger.setLevel(logging.INFO)
     logger.propagate = enable_propagation
 
     if abbrev_name is None:

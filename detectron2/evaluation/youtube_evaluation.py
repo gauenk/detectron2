@@ -21,20 +21,21 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from tabulate import tabulate
 
-import detectron2.utils.comm as comm
+# import detectron2.utils.comm as comm
 from detectron2.config import CfgNode
 from detectron2.data import MetadataCatalog
-from detectron2.data.datasets.coco import convert_to_coco_json
+# from detectron2.data.datasets.coco import convert_to_coco_json
+from detectron2.data.datasets.youtube import convert_to_coco_json
 from detectron2.structures import Boxes, BoxMode, pairwise_iou
 from detectron2.utils.file_io import PathManager
 from detectron2.utils.logger import create_small_table
 
 from .evaluator import DatasetEvaluator
 
-try:
-    from detectron2.evaluation.fast_eval_api import COCOeval_opt
-except ImportError:
-    COCOeval_opt = COCOeval
+# try:
+#     from detectron2.evaluation.fast_eval_api import COCOeval_opt
+# except ImportError:
+COCOeval_opt = COCOeval
 
 
 class YouTubeEvaluator(DatasetEvaluator):
@@ -52,7 +53,9 @@ class YouTubeEvaluator(DatasetEvaluator):
 
     def __init__(
         self,
+        dataset_dicts,
         dataset_name,
+        dataset_root,
         tasks=None,
         distributed=True,
         output_dir=None,
@@ -104,6 +107,7 @@ class YouTubeEvaluator(DatasetEvaluator):
         self._logger = logging.getLogger(__name__)
         self._distributed = distributed
         self._output_dir = output_dir
+        self._dataset_root = dataset_root
 
         if use_fast_impl and (COCOeval_opt is COCOeval):
             self._logger.info("Fast COCO eval is not built. Falling back to official COCO eval.")
@@ -137,16 +141,16 @@ class YouTubeEvaluator(DatasetEvaluator):
 
         self._metadata = MetadataCatalog.get(dataset_name)
         if not hasattr(self._metadata, "json_file"):
-            if output_dir is None:
+            if dataset_root is None:
                 raise ValueError(
-                    "output_dir must be provided to COCOEvaluator "
+                    "dataset_root must be provided to COCOEvaluator "
                     "for datasets not in COCO format."
                 )
             self._logger.info(f"Trying to convert '{dataset_name}' to COCO format ...")
 
-            cache_path = os.path.join(output_dir, f"{dataset_name}_coco_format.json")
+            cache_path = os.path.join(dataset_root, f"{dataset_name}_coco_format.json")
             self._metadata.json_file = cache_path
-            convert_to_coco_json(dataset_name, cache_path,
+            convert_to_coco_json(dataset_dicts, dataset_name, cache_path,
                                  allow_cached=allow_cached_coco)
 
         base = Path(__file__).parents[2]
@@ -172,8 +176,6 @@ class YouTubeEvaluator(DatasetEvaluator):
             outputs: the outputs of a COCO model. It is a list of dicts with key
                 "instances" that contains :class:`Instances`.
         """
-        # print(len(inputs),len(outputs))
-        # print(type(inputs[0]))
         for input, output in zip(inputs, outputs):
             prediction = {"image_id": input["image_id"]}
 
@@ -190,15 +192,15 @@ class YouTubeEvaluator(DatasetEvaluator):
         Args:
             img_ids: a list of image IDs to evaluate on. Default to None for the whole dataset
         """
-        if self._distributed:
-            comm.synchronize()
-            predictions = comm.gather(self._predictions, dst=0)
-            predictions = list(itertools.chain(*predictions))
+        # if self._distributed:
+        #     comm.synchronize()
+        #     predictions = comm.gather(self._predictions, dst=0)
+        #     predictions = list(itertools.chain(*predictions))
 
-            if not comm.is_main_process():
-                return {}
-        else:
-            predictions = self._predictions
+        #     if not comm.is_main_process():
+        #         return {}
+        # else:
+        predictions = self._predictions
 
         if len(predictions) == 0:
             self._logger.warning("[COCOEvaluator] Did not receive valid predictions.")

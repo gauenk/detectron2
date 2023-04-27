@@ -7,7 +7,8 @@ from .lvis_evaluation import LVISEvaluator
 from .panoptic_evaluation import COCOPanopticEvaluator
 from .pascal_voc_evaluation import PascalVOCDetectionEvaluator
 from .sem_seg_evaluation import SemSegEvaluator
-from .sem_seg_eval_v2 import SemSegEvaluatorV2
+# from .sem_seg_eval_v2 import SemSegEvaluatorV2
+from .youtube_evaluation import YouTubeEvaluator
 from .testing import print_csv_format, verify_results
 
 __all__ = [k for k in globals().keys() if not k.startswith("_")]
